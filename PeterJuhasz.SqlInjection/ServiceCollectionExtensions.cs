@@ -1,5 +1,7 @@
 ﻿using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.ObjectPool;
 using System;
+using System.Net.Http;
 
 namespace PeterJuhasz.SqlInjection
 {
@@ -10,6 +12,9 @@ namespace PeterJuhasz.SqlInjection
             services.AddTransient<BlindSqlInjection>();
             services.AddSingleton<SqlWriterOptions>(SqlWriterOptions.Default);
             services.AddTransient<SqlWriter>();
+            services.AddSingleton<IPooledObjectPolicy<SqlWriter>, SqlWriterPooledObjectPolicy>();
+            services.AddSingleton<ObjectPool<SqlWriter>, DefaultObjectPool<SqlWriter>>();
+            services.AddScoped<HttpClient>();
 
             var builder = new SqlInjectionBuilder(services);
             database(builder);
@@ -17,21 +22,14 @@ namespace PeterJuhasz.SqlInjection
 
             return services;
         }
-
-        public static ISqlInjectionAttackBuilder UseTimeBased(this ISqlInjectionAttackBuilder builder, TimeBasedBlindSqlInjectionOptions options)
-        {
-            builder.Services.AddSingleton(options);
-            builder.Services.AddScoped<IHypothesisTester, TimeBasedHypothesisTester>();
-            return builder;
-        }
-
+        
         public static ISqlInjectionAttackBuilder UseBooleanBased<THypothesisTester>(this ISqlInjectionAttackBuilder builder) where THypothesisTester : class, IHypothesisTester
         {
             builder.Services.AddScoped<IHypothesisTester, THypothesisTester>();
             return builder;
         }
 
-        public class SqlInjectionBuilder : ISqlInjectionDatabaseBuilder, ISqlInjectionAttackBuilder
+        internal class SqlInjectionBuilder : ISqlInjectionDatabaseBuilder, ISqlInjectionAttackBuilder
         {
             public SqlInjectionBuilder(IServiceCollection services)
             {

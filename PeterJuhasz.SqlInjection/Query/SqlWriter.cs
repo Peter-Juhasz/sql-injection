@@ -21,6 +21,8 @@ namespace PeterJuhasz.SqlInjection
 
         private static CultureInfo culture = new CultureInfo("en-us");
 
+        public int Length => builder.Length;
+
 
         public override void Write(string text) => builder.Append(text);
 
@@ -53,7 +55,7 @@ namespace PeterJuhasz.SqlInjection
         public virtual void WriteString(string str) => Write($"'{EscapeSingleQuote(str)}'");
 
         public virtual void WriteNumber(int str) => Write(str);
-
+        public virtual void WriteNumber(long str) => Write(str);
         public virtual void WriteNumber(double str) => Write(str.ToString(culture));
 
         public virtual void WriteBoolean(bool b) => WriteKeyword(b.ToString());

@@ -1,24 +1,32 @@
 ﻿using System;
 using System.Linq;
 using System.Threading.Tasks;
+using Microsoft.Extensions.Logging;
+using System.Diagnostics;
+using System.Net.Http;
+using System.Threading;
 
 namespace PeterJuhasz.SqlInjection
 {
-    using Microsoft.Extensions.Logging;
-    using System.Diagnostics;
-    using System.Net.Http;
     using static MySqlFunctions;
 
     public class TimeBasedHypothesisTester : IHypothesisTester
     {
-        public TimeBasedHypothesisTester(SqlWriter writer, TimeBasedBlindSqlInjectionOptions options, ILogger<TimeBasedHypothesisTester> logger)
+        public TimeBasedHypothesisTester(
+            SqlWriter writer,
+            ITimeBasedInjector injector,
+            TimeBasedBlindSqlInjectionOptions options,
+            ILogger<TimeBasedHypothesisTester> logger
+        )
         {
             Writer = writer;
+            Injector = injector;
             Options = options;
             Logger = logger;
         }
 
         public SqlWriter Writer { get; }
+        public ITimeBasedInjector Injector { get; }
         public TimeBasedBlindSqlInjectionOptions Options { get; }
         public ILogger<TimeBasedHypothesisTester> Logger { get; }
 
@@ -29,6 +37,7 @@ namespace PeterJuhasz.SqlInjection
 
             var test = query.Select(condition => condition ? 1 : Sleep(Options.InjectedWaitTime.TotalSeconds)).Take(1);
 
+            Writer.Clear();
             var visitor = new MySqlQueryModelVisitor(Writer);
             var sql = visitor.Render(test);
 
@@ -39,7 +48,7 @@ namespace PeterJuhasz.SqlInjection
                     Stopwatch stopwatch = Stopwatch.StartNew();
 
                     Logger.LogDebug(sql);
-                    await Options.InjectAsync(sql);
+                    await Injector.InjectAsync(sql, CancellationToken.None);
 
                     stopwatch.Stop();
 

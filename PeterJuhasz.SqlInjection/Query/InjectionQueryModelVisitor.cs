@@ -5,6 +5,7 @@ using Remotion.Linq.Clauses.ResultOperators;
 using Remotion.Linq.Parsing.ExpressionVisitors.Transformation;
 using Remotion.Linq.Parsing.Structure;
 using System.Linq;
+using System.Linq.Expressions;
 
 namespace PeterJuhasz.SqlInjection
 {
@@ -18,17 +19,8 @@ namespace PeterJuhasz.SqlInjection
         protected SqlWriter Writer { get; set; }
         protected IInjectionDbSet DbSet { get; set; }
 
-        public string Render(IQueryable query)
+        public string Render(QueryModel model)
         {
-            DbSet = query as IInjectionDbSet;
-            var model = new QueryParser(new ExpressionTreeParser(
-                ExpressionTreeParser.CreateDefaultNodeTypeProvider(),
-                ExpressionTreeParser.CreateDefaultProcessor(
-                    ExpressionTransformerRegistry.CreateDefault(),
-                    new NullEvaluatableExpressionFilter()
-                )
-            )).GetParsedQuery(DbSet.Expression);
-
             var skip = GetResultOperator<SkipResultOperator>(model);
 
             SubQueryFromClauseFlattenerWithoutChecking flattener = new SubQueryFromClauseFlattenerWithoutChecking();
@@ -36,13 +28,21 @@ namespace PeterJuhasz.SqlInjection
 
             if (skip != null)
                 model.ResultOperators.Add(skip);
-
-            Writer.Clear();
-
+            
             VisitQueryModel(model);
 
             return Writer.ToString();
         }
+
+        public string Render(IQueryable query) => Render(query.Expression);
+
+        public string Render(Expression expression) => Render(new QueryParser(new ExpressionTreeParser(
+                ExpressionTreeParser.CreateDefaultNodeTypeProvider(),
+                ExpressionTreeParser.CreateDefaultProcessor(
+                    ExpressionTransformerRegistry.CreateDefault(),
+                    new NullEvaluatableExpressionFilter()
+                )
+            )).GetParsedQuery(expression));
 
 
         public override string ToString()

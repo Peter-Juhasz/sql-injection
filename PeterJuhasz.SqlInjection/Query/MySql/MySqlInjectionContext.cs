@@ -83,10 +83,10 @@ namespace PeterJuhasz.SqlInjection
                 public string AuthenticationString { get; set; }
 
                 [Column("account_locked")]
-                public string AccountLocked { get; set; }
+                public bool AccountLocked { get; set; }
 
                 [Column("password_expired")]
-                public string PasswordExpired { get; set; }
+                public bool PasswordExpired { get; set; }
             }
         }
     }

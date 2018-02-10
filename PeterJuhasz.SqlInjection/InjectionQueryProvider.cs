@@ -1,4 +1,7 @@
-﻿using System;
+﻿using Remotion.Linq.Clauses;
+using System;
+using System.Collections.Generic;
+using System.Collections.ObjectModel;
 using System.Linq;
 using System.Linq.Expressions;
 
@@ -10,18 +13,22 @@ namespace PeterJuhasz.SqlInjection
         {
             Injection = injection;
             Table = table;
+            Operators = new Collection<ResultOperatorBase>();
         }
 
         internal BlindSqlInjection Injection { get; }
 
         internal QualifiedName Table { get; }
 
+        public ICollection<ResultOperatorBase> Operators { get; }
+
+
         public IQueryable CreateQuery(Expression expression)
         {
             Type elementType = expression.Type;
             try
             {
-                return (IQueryable)Activator.CreateInstance(typeof(InjectionDbSet<>).MakeGenericType(elementType), new object[] { this, expression, Injection, Table });
+                return (IQueryable)Activator.CreateInstance(typeof(InjectionDbSet<>).MakeGenericType(elementType), new object[] { this, expression, Injection, Table, Operators });
             }
             catch (System.Reflection.TargetInvocationException tie)
             {
@@ -31,7 +38,7 @@ namespace PeterJuhasz.SqlInjection
         
         public IQueryable<TResult> CreateQuery<TResult>(Expression expression)
         {
-            return new InjectionDbSet<TResult>(this, expression, Injection, Table);
+            return new InjectionDbSet<TResult>(this, expression, Injection, Table, Operators);
         }
 
         public object Execute(Expression expression)

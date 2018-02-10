@@ -1,7 +1,9 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Collections.ObjectModel;
 using System.Linq;
 using System.Linq.Expressions;
+using Remotion.Linq.Clauses;
 
 namespace PeterJuhasz.SqlInjection
 {
@@ -16,13 +18,14 @@ namespace PeterJuhasz.SqlInjection
             Expression = Expression.Constant(this);
             Injection = injection;
             Table = table;
+            Operators = new Collection<ResultOperatorBase>();
         }
 
         /// <summary> 
         /// This constructor is called by Provider.CreateQuery(). 
         /// </summary> 
         /// <param name="expression"></param>
-        public InjectionDbSet(InjectionQueryProvider provider, Expression expression, BlindSqlInjection injection, QualifiedName table)
+        public InjectionDbSet(InjectionQueryProvider provider, Expression expression, BlindSqlInjection injection, QualifiedName table, ICollection<ResultOperatorBase> operators)
         {
             if (provider == null)
             {
@@ -43,19 +46,19 @@ namespace PeterJuhasz.SqlInjection
             Expression = expression;
             Injection = injection;
             Table = table;
+            Operators = operators;
         }
 
 
         public IQueryProvider Provider { get; private set; }
         public Expression Expression { get; private set; }
 
-        public Type ElementType
-        {
-            get { return typeof(TData); }
-        }
+        public Type ElementType => typeof(TData);
 
         public BlindSqlInjection Injection { get; }
         public QualifiedName Table { get; }
+
+        public ICollection<ResultOperatorBase> Operators { get; }
 
         
         public IEnumerator<TData> GetEnumerator() => (Provider.Execute<IEnumerable<TData>>(Expression)).GetEnumerator();

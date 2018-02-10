@@ -2,6 +2,7 @@
 using Remotion.Linq.Clauses;
 using Remotion.Linq.Clauses.ResultOperators;
 using System.Linq;
+using System.Linq.Expressions;
 
 namespace PeterJuhasz.SqlInjection
 {
@@ -43,7 +44,7 @@ namespace PeterJuhasz.SqlInjection
             Writer.WriteKeyword("FROM");
             Writer.WriteWhiteSpace();
             
-            Writer.WriteIdentifier(DbSet.Table);
+            Writer.WriteIdentifier((DbSet ?? (fromClause.FromExpression as ConstantExpression).Value as IInjectionDbSet).Table);
         }
 
         public override void VisitSelectClause(SelectClause selectClause, QueryModel queryModel)
@@ -57,7 +58,15 @@ namespace PeterJuhasz.SqlInjection
                 Writer.WriteWhiteSpace();
             }
 
-            new MySqlExpressionVisitor(Writer).Visit(selectClause.Selector);
+            if (queryModel.ResultOperators.OfType<CountResultOperator>().Any())
+            {
+                Writer.WriteIdentifier("COUNT");
+                Writer.Write("(");
+                Writer.Write("*");
+                Writer.Write(")");
+            }
+
+            new MySqlExpressionVisitor(this, Writer).Visit(selectClause.Selector);
 
             base.VisitSelectClause(selectClause, queryModel);
         }
@@ -68,7 +77,7 @@ namespace PeterJuhasz.SqlInjection
             Writer.WriteKeyword("WHERE");
             Writer.WriteWhiteSpace();
 
-            new MySqlExpressionVisitor(Writer).Visit(whereClause.Predicate);
+            new MySqlExpressionVisitor(this, Writer).Visit(whereClause.Predicate);
 
             base.VisitWhereClause(whereClause, queryModel, index);
         }
@@ -83,7 +92,7 @@ namespace PeterJuhasz.SqlInjection
 
             foreach (var ordering in orderByClause.Orderings)
             {
-                new MySqlExpressionVisitor(Writer).Visit(ordering.Expression);
+                new MySqlExpressionVisitor(this, Writer).Visit(ordering.Expression);
                 
                 if (ordering.OrderingDirection == OrderingDirection.Desc)
                 {
@@ -111,10 +120,6 @@ namespace PeterJuhasz.SqlInjection
                     Writer.WriteKeyword("OFFSET");
                     Writer.WriteWhiteSpace();
                     Writer.Write(skip.Count);
-                    break;
-
-                case CountResultOperator count:
-                    //count.
                     break;
             }
 

@@ -4,7 +4,7 @@ using System.Text;
 
 namespace PeterJuhasz.SqlInjection
 {
-    internal static class Extensions
+    public static partial class Extensions
     {
         public static string ToHex(this byte[] data) => String.Concat(data.Select(b => $"{b:X2}"));
 

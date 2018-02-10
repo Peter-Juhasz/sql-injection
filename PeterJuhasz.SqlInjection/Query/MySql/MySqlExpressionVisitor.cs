@@ -10,11 +10,16 @@ namespace PeterJuhasz.SqlInjection
 {
     internal class MySqlExpressionVisitor : InjectionExpressionVisitor
     {
-        public MySqlExpressionVisitor(SqlWriter writer)
+        public MySqlExpressionVisitor(
+            MySqlQueryModelVisitor queryModelVisitor,
+            SqlWriter writer
+        )
         {
-            this.Writer = writer;
+            QueryModelVisitor = queryModelVisitor;
+            Writer = writer;
         }
 
+        protected MySqlQueryModelVisitor QueryModelVisitor { get; }
         protected SqlWriter Writer { get; }
 
         public override Expression Visit(Expression node)
@@ -37,6 +42,10 @@ namespace PeterJuhasz.SqlInjection
                     VisitBinary(binary);
                     break;
 
+                case UnaryExpression unary:
+                    VisitUnary(unary);
+                    break;
+
                 case ConditionalExpression conditional:
                     VisitConditional(conditional);
                     break;
@@ -49,9 +58,12 @@ namespace PeterJuhasz.SqlInjection
                     break;
 
                 case SubQueryExpression query:
-
+                    Writer.Write("(");
+                    var visitor = new MySqlQueryModelVisitor(Writer);
+                    visitor.Render(query.QueryModel);
+                    Writer.Write(")");
                     break;
-
+                    
                 default:
                     throw new NotSupportedException($"Can't translate expression of type '{node.NodeType}' ({node.Type})");
             }
@@ -70,7 +82,7 @@ namespace PeterJuhasz.SqlInjection
 
         protected override Expression VisitMethodCall(MethodCallExpression node)
         {
-            if (node.Method.DeclaringType == typeof(DynamicEntity) && node.Method.Name == "get_Item")
+            if (node.Method.DeclaringType == typeof(DynamicEntity) && (node.Method.Name == "get_Item" || node.Method.Name == "Value"))
             {
                 var arg = node.Arguments.Single() as ConstantExpression;
                 var name = arg.Value as string;
@@ -149,6 +161,10 @@ namespace PeterJuhasz.SqlInjection
                     break;
 
                 case int str:
+                    Writer.WriteNumber(str);
+                    break;
+
+                case long str:
                     Writer.WriteNumber(str);
                     break;
 
@@ -256,6 +272,21 @@ namespace PeterJuhasz.SqlInjection
             }
 
             Visit(node.Right);
+
+            return node;
+        }
+
+        protected override Expression VisitUnary(UnaryExpression node)
+        {
+            switch (node.NodeType)
+            {
+                case ExpressionType.Convert:
+                    Visit(node.Operand);
+                    break;
+
+                default:
+                    throw new NotSupportedException($"Can't translate expression of type '{node.NodeType}' ({node.Type})");
+            }
 
             return node;
         }

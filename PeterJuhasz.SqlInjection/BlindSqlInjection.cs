@@ -14,13 +14,11 @@ namespace PeterJuhasz.SqlInjection
         public BlindSqlInjection(
             ILogger<BlindSqlInjection> logger,
             SqlWriter sqlWriter,
-            TimeBasedBlindSqlInjectionOptions options,
             IHypothesisTester hypothesisTester
         )
         {
             Logger = logger;
             SqlWriter = sqlWriter;
-            Options = options;
             HypothesisTester = hypothesisTester;
             Context = new MySqlInjectionContext(this);
         }
@@ -28,8 +26,7 @@ namespace PeterJuhasz.SqlInjection
         protected ILogger Logger { get; }
 
         protected SqlWriter SqlWriter { get; }
-
-        protected TimeBasedBlindSqlInjectionOptions Options { get; }
+        
         public IHypothesisTester HypothesisTester { get; }
         public MySqlInjectionContext Context { get; }
         

@@ -1,8 +1,13 @@
-﻿using System.Linq;
+﻿using System;
+using System.Linq;
+using System.Linq.Expressions;
+using System.Reflection;
 using System.Threading.Tasks;
 
 namespace PeterJuhasz.SqlInjection
 {
+    using static MySqlFunctions;
+
     public static class QueryableExtensions
     {
         public static Task<string> FirstAsync(this IQueryable<string> query, int estimatedLength = 48) =>
@@ -13,10 +18,11 @@ namespace PeterJuhasz.SqlInjection
 
         public static Task<int> FirstAsync(this IQueryable<int> query, int estimation = 1000) =>
             (query as IInjectionDbSet).Injection.GetExpressionValueUsingBinarySearchAsync(query, estimation);
-        
-        public static Task<int> CountAsync(this IQueryable<int> query, int estimation = 1000)
+
+        public static Task<int> CountAsync<T>(this IQueryable<T> query, int estimation = 1000)
         {
-            return Task.FromResult(0);
+            BlindSqlInjection injection = (query as IInjectionDbSet).Injection;
+            return injection.GetExpressionValueUsingBinarySearchAsync(injection.Context.Dual.Select(_ => query.Count()), estimation);
         }
     }
 }

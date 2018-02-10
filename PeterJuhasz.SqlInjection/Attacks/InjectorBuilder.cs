@@ -21,21 +21,85 @@ namespace PeterJuhasz.SqlInjection
         public static InjectionOptions IntoRouteParameter(this InjectionOptions injector, string parameterName = "sql")
         {
             injector.ParameterName = parameterName;
+            injector.Location = InjectionLocation.Route;
             return injector;
         }
 
-        public static InjectionOptions IntoQueryStringParameter(this InjectionOptions injector, string parameterName = "sql")
+        public static InjectionOptions IntoRouteParameter(this InjectionOptions injector, string initialValue, string parameterName = "sql", QuoteStyle quoteStyle = QuoteStyle.SingleQuote)
         {
             injector.ParameterName = parameterName;
+            injector.Location = InjectionLocation.Route;
+            injector.InitialValue = initialValue;
+            injector.ParameterType = typeof(string);
+            injector.QuoteStyle = quoteStyle;
             return injector;
         }
 
-        public static InjectionOptions IntoForm(this InjectionOptions injector, string fieldName, Func<FormUrlEncodedContent> contentFactory = null)
+        public static InjectionOptions IntoRouteParameter(this InjectionOptions injector, int initialValue, string parameterName = "sql")
         {
-            injector.ParameterName = fieldName;
-            injector.ContentFactory = contentFactory;
+            injector.ParameterName = parameterName;
+            injector.Location = InjectionLocation.Route;
+            injector.InitialValue = initialValue;
+            injector.ParameterType = typeof(int);
             return injector;
         }
+
+
+        public static InjectionOptions IntoQueryStringParameter(this InjectionOptions injector, string parameterName)
+        {
+            injector.ParameterName = parameterName;
+            injector.Location = InjectionLocation.QueryString;
+            return injector;
+        }
+
+        public static InjectionOptions IntoQueryStringParameter(this InjectionOptions injector, string parameterName, string initialValue, QuoteStyle quoteStyle = QuoteStyle.SingleQuote)
+        {
+            injector.ParameterName = parameterName;
+            injector.Location = InjectionLocation.QueryString;
+            injector.InitialValue = initialValue;
+            injector.ParameterType = typeof(string);
+            injector.QuoteStyle = quoteStyle;
+            return injector;
+        }
+
+        public static InjectionOptions IntoQueryStringParameter(this InjectionOptions injector, string parameterName, int initialValue)
+        {
+            injector.ParameterName = parameterName;
+            injector.Location = InjectionLocation.QueryString;
+            injector.InitialValue = initialValue;
+            injector.ParameterType = typeof(int);
+            return injector;
+        }
+
+
+        public static InjectionOptions IntoForm(this InjectionOptions injector, string fieldName)
+        {
+            injector.ParameterName = fieldName;
+            injector.Location = InjectionLocation.Form;
+            return injector;
+        }
+
+        public static InjectionOptions IntoForm(this InjectionOptions injector, string fieldName, string initialValue, Func < IEnumerable<KeyValuePair<string, string>>> formFields = null, QuoteStyle quoteStyle = QuoteStyle.SingleQuote)
+        {
+            injector.ParameterName = fieldName;
+            injector.Location = InjectionLocation.Form;
+            injector.FormFields = formFields;
+            injector.InitialValue = initialValue;
+            injector.ParameterType = typeof(string);
+            injector.QuoteStyle = quoteStyle;
+            return injector;
+        }
+
+        public static InjectionOptions IntoForm(this InjectionOptions injector, string fieldName, int initialValue, Func<IEnumerable<KeyValuePair<string, string>>> formFields = null)
+        {
+            injector.ParameterName = fieldName;
+            injector.Location = InjectionLocation.Form;
+            injector.FormFields = formFields;
+            injector.InitialValue = initialValue;
+            injector.ParameterType = typeof(int);
+            return injector;
+        }
+
 
         public static InjectionOptions AsString(this InjectionOptions injector, string initialValue = null, QuoteStyle quoteStyle = QuoteStyle.SingleQuote)
         {
@@ -50,6 +114,7 @@ namespace PeterJuhasz.SqlInjection
             return injector;
         }
 
+
         public static InjectionOptions UseHttpMethod(this InjectionOptions injector, HttpMethod method)
         {
             injector.Method = method;
@@ -57,5 +122,12 @@ namespace PeterJuhasz.SqlInjection
         }
 
         public static InjectionOptions UseGet(this InjectionOptions injector) => injector.UseHttpMethod(HttpMethod.Get);
+
+        public static InjectionOptions UsePost(this InjectionOptions injector, Func<HttpContent> contentFactory = null)
+        {
+            injector.Method = HttpMethod.Post;
+            injector.ContentFactory = contentFactory;
+            return injector;
+        }
     }
 }

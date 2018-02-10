@@ -6,27 +6,28 @@ using System.Diagnostics;
 using System.Net.Http;
 using System.Threading;
 using System.Linq.Expressions;
+using Microsoft.Extensions.ObjectPool;
 
 namespace PeterJuhasz.SqlInjection
 {
     public class ErrorBasedHypothesisTester : IHypothesisTester
     {
         public ErrorBasedHypothesisTester(
-            SqlWriter writer,
+            ObjectPool<SqlWriter> writerPool,
             IErrorBasedInjector injector,
             IErrorExpressionProvider errorExpressionProvider,
             IErrorDetector errorDetector,
             ILogger<ErrorBasedHypothesisTester> logger
         )
         {
-            Writer = writer;
+            WriterPool = writerPool;
             Injector = injector;
             ErrorExpressionProvider = errorExpressionProvider;
             ErrorDetector = errorDetector;
             Logger = logger;
         }
 
-        public SqlWriter Writer { get; }
+        public ObjectPool<SqlWriter> WriterPool { get; }
         public IErrorBasedInjector Injector { get; }
         public IErrorExpressionProvider ErrorExpressionProvider { get; }
         public IErrorDetector ErrorDetector { get; }
@@ -56,33 +57,38 @@ namespace PeterJuhasz.SqlInjection
                 )
             ).Take(1);
 
-            Writer.Clear();
-            var visitor = new MySqlQueryModelVisitor(Writer);
-            var sql = visitor.Render(next);
-
-            Logger.LogDebug(sql);
-
-            while (true)
+            using (var writer = WriterPool.Get())
             {
-                try
+                var visitor = new MySqlQueryModelVisitor(writer);
+                var sql = visitor.Render(next);
+
+                Logger.LogDebug(sql);
+
+                while (true)
                 {
-                    using (var response = await Injector.InjectAsync(sql, CancellationToken.None))
-                        return await ErrorDetector.ContainsErrorAsync(response);
-                }
-                catch (HttpRequestException req) when (req.InnerException?.Message?.Contains("timed out") ?? false)
-                {
-                    Logger.LogWarning($"Retrying...");
-                    continue;
-                }
-                catch (HttpRequestException req) when (req.InnerException?.Message?.Contains("unrecognized response") ?? false)
-                {
-                    Logger.LogWarning($"Retrying...");
-                    continue;
-                }
-                catch (OperationCanceledException)
-                {
-                    Logger.LogWarning($"Retrying...");
-                    continue;
+                    try
+                    {
+                        using (var response = await Injector.InjectAsync(sql, CancellationToken.None))
+                        {
+                            WriterPool.Return(writer);
+                            return await ErrorDetector.ContainsErrorAsync(response);
+                        }
+                    }
+                    catch (HttpRequestException req) when (req.InnerException?.Message?.Contains("timed out") ?? false)
+                    {
+                        Logger.LogWarning($"Retrying...");
+                        continue;
+                    }
+                    catch (HttpRequestException req) when (req.InnerException?.Message?.Contains("unrecognized response") ?? false)
+                    {
+                        Logger.LogWarning($"Retrying...");
+                        continue;
+                    }
+                    catch (OperationCanceledException)
+                    {
+                        Logger.LogWarning($"Retrying...");
+                        continue;
+                    }
                 }
             }
         }

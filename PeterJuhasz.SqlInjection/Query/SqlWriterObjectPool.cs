@@ -15,6 +15,10 @@ namespace PeterJuhasz.SqlInjection
 
         public SqlWriter Create() => ServiceProvider.GetRequiredService<SqlWriter>();
 
-        public bool Return(SqlWriter obj) => obj.Length == 0;
+        public bool Return(SqlWriter obj)
+        {
+            obj.Clear();
+            return true;
+        }
     }
 }

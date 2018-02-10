@@ -110,6 +110,11 @@ attack => attack.UseTimeBased(
         // location
         .IntoRouteParameter(initialValue: "slug")
         .IntoQueryStringParameter("id", initialValue: 1)
+        .IntoForm("firstName")
+
+        // value type, if no initial value was provided
+        .AsString()
+        .AsInteger()
 
         // HTTP method
         .UseGet()

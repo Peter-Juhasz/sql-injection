@@ -16,6 +16,8 @@ namespace PeterJuhasz.SqlInjection
 
         public string ParameterName { get; set; }
 
+        public InjectionLocation Location { get; set; }
+
         public Type ParameterType { get; set; }
 
         public QuoteStyle? QuoteStyle { get; set; }
@@ -24,7 +26,17 @@ namespace PeterJuhasz.SqlInjection
 
         public Func<HttpContent> ContentFactory { get; set; } = () => null;
 
+        public Func<IEnumerable<KeyValuePair<string, string>>> FormFields { get; set; }
+
         public object InitialValue { get; set; }
 
+    }
+
+    public enum InjectionLocation
+    {
+        Route,
+        QueryString,
+        Form,
+        Header,
     }
 }

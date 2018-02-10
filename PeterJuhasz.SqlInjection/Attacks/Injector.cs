@@ -1,4 +1,6 @@
-﻿using System;
+﻿using Microsoft.AspNetCore.Http;
+using System;
+using System.Linq;
 using System.Net.Http;
 using System.Text;
 using System.Threading;
@@ -37,12 +39,35 @@ namespace PeterJuhasz.SqlInjection
 
         private HttpContent GetContent(string sql)
         {
-            return Options.ContentFactory();
+            if (Options.ContentFactory != null)
+                return Options.ContentFactory();
+
+            if (Options.Location == InjectionLocation.Form)
+            {
+                var fields = Options.FormFields().ToDictionary(k => k.Key, k => k.Value);
+                fields.Add(Options.ParameterName, GetSql(sql));
+                var form = new FormUrlEncodedContent(fields);
+            }
+
+            return null;
         }
 
         private string GetUri(string sql)
         {
-            return Options.Uri.ToString().Replace($"{{{Options.ParameterName}}}", Uri.EscapeDataString(GetSql(sql)));
+            switch (Options.Location)
+            {
+                case InjectionLocation.Route:
+                    return Options.Uri.ToString().Replace($"{{{Options.ParameterName}}}", Uri.EscapeDataString(GetSql(sql)));
+
+                case InjectionLocation.QueryString:
+                    UriBuilder builder = new UriBuilder(Options.Uri);
+                    var query = QueryString.FromUriComponent(Options.Uri);
+                    query = query.Add(Options.ParameterName, GetSql(sql));
+                    builder.Query = query.Value;
+                    return builder.Uri.ToString();
+            }
+
+            return Options.Uri.ToString();
         }
 
         protected string GetSql(string sql)

@@ -23,12 +23,6 @@ namespace PeterJuhasz.SqlInjection
             return services;
         }
         
-        public static ISqlInjectionAttackBuilder UseBooleanBased<THypothesisTester>(this ISqlInjectionAttackBuilder builder) where THypothesisTester : class, IHypothesisTester
-        {
-            builder.Services.AddScoped<IHypothesisTester, THypothesisTester>();
-            return builder;
-        }
-
         internal class SqlInjectionBuilder : ISqlInjectionDatabaseBuilder, ISqlInjectionAttackBuilder
         {
             public SqlInjectionBuilder(IServiceCollection services)

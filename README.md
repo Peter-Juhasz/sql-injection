@@ -80,7 +80,7 @@ services.AddSqlInjection(
 );
 ```
 
-### Error-based attacks
+### Error-based blind attacks
 You can configure how to raise errors and how to detect them:
 
 ```csharp
@@ -94,10 +94,28 @@ services.AddSqlInjection(
 );
 ```
 
-### Boolean-based attacks
+### Boolean-based blind attacks
 
-TODO
+You have to implement your own boolean-based hypothesis tester:
 
+```csharp
+class CustomHypothesisTester : IHypothesisTester
+{
+    public Task<bool> TestAsync(IQueryable<bool> query)
+    {
+        // ...
+    }
+}
+```
+
+And then you can register it as an attack:
+
+```csharp
+services.AddSqlInjection(
+    database => database.UseMySql(),
+    attack => attack.UseBooleanBased<CustomHypothesisTester>()
+);
+```
 
 ## Set up the injector function
 

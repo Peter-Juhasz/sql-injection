@@ -134,6 +134,9 @@ attack => attack.UseTimeBased(
         .AsString()
         .AsInteger()
 
+        // terminate statement
+        .TerminateStatement(CommentStyle.MultiLine, parenthesisNestingDepth: 2)
+
         // HTTP method
         .UseGet()
         .UsePost()

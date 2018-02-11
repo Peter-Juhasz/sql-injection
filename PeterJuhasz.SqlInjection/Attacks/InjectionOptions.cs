@@ -30,13 +30,10 @@ namespace PeterJuhasz.SqlInjection
 
         public object InitialValue { get; set; }
 
-    }
+        public CommentStyle? CommentStyle { get; set; }
 
-    public enum InjectionLocation
-    {
-        Route,
-        QueryString,
-        Form,
-        Header,
+        public bool EndStatementBeforeComment { get; set; } = false;
+
+        public int ParenthesisNestingDepth { get; set; } = 0;
     }
 }

@@ -115,6 +115,15 @@ namespace PeterJuhasz.SqlInjection
         }
 
 
+        public static InjectionOptions TerminateStatement(this InjectionOptions injector, CommentStyle commentStyle, int parenthesisNestingDepth = 0, bool useSemicolon = false)
+        {
+            injector.CommentStyle = commentStyle;
+            injector.ParenthesisNestingDepth = parenthesisNestingDepth;
+            injector.EndStatementBeforeComment = useSemicolon;
+            return injector;
+        }
+
+
         public static InjectionOptions UseHttpMethod(this InjectionOptions injector, HttpMethod method)
         {
             injector.Method = method;

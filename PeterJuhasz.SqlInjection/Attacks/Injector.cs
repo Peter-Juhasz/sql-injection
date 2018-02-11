@@ -86,6 +86,23 @@ namespace PeterJuhasz.SqlInjection
             sb.Append(')');
             sb.Append(" LIMIT 1");
 
+            for (int i = 0; i < Options.ParenthesisNestingDepth; i++)
+                sb.Append(')');
+
+            if (Options.EndStatementBeforeComment)
+                sb.Append(';');
+
+            if (Options.CommentStyle != null)
+            {
+                if (Options.CommentStyle == CommentStyle.DashDash)
+                    sb.Append(' ');
+
+                sb.Append(Options.CommentStyle.Value.AsString());
+
+                if (Options.CommentStyle == CommentStyle.DashDash)
+                    sb.Append(' ');
+            }
+
             return sb.ToString();
         }
     }
